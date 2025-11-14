@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Choose Display</title>
+  <style>
+    body{ font-family: system-ui, sans-serif; margin:20px; color:#eee; background:#1b1b1b; }
+    .row{ margin:8px 0; }
+    button{ padding:8px 12px; border-radius:8px; border:1px solid #444; background:#2b2b2b; color:#eee; cursor:pointer; }
+    button:hover{ background:#353535; }
+    select{ width:100%; padding:8px; border-radius:8px; border:1px solid #444; background:#111; color:#eee; }
+    .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <label for="disp">Send to which display?</label>
+    <select id="disp"></select>
+  </div>
+  <div class="actions">
+    <button id="cancel">Cancel</button>
+    <button id="ok">OK</button>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const sel = document.getElementById('disp');
+    ipcRenderer.on('picker:init', (e, displays)=>{
+      sel.innerHTML = '';
+      (displays||[]).forEach(d=>{
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.label || d.id;
+        sel.appendChild(opt);
+      });
+    });
+    document.getElementById('ok').addEventListener('click', ()=>{
+      const id = sel.value || null;
+      ipcRenderer.send('picker:choose', id);
+    });
+    document.getElementById('cancel').addEventListener('click', ()=>{
+      ipcRenderer.send('picker:cancel');
+    });
+    window.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ ipcRenderer.send('picker:cancel'); } });
+  </script>
+</body>
+</html>

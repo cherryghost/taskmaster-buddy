@@ -1,0 +1,13 @@
+{
+  "name": "taskmaster-command-center",
+  "version": "1.0.0",
+  "description": "Taskmaster Command Center Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . Taskmaster --platform=win32 --arch=x64 --out=dist"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

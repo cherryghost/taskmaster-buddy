@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskmaster • Command Center</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">Taskmaster • Command Center</div>
+      <button id="btn-open">Open</button>
+      <button id="btn-save">Save</button>
+      <div class="spacer"></div>
+      </header>
+
+    <nav>
+      <button id="nav-scores">🏆 Scores</button>
+      <button id="nav-playlist" class="active">🎞️ Playlist</button>
+      <button id="nav-notes">📝 Notes</button>
+    </nav>
+
+    <div id="content"></div>
+  </div>
+  <script src="./js/main.js"></script>
+
+<div id="debug-log" style="position:fixed;left:8px;bottom:8px;max-width:50vw;max-height:30vh;overflow:auto;
+     font-family:monospace;font-size:12px;background:#000a;color:#0f0;border:1px solid #0f0;
+     padding:6px 8px;border-radius:8px;z-index:999999;display:none"></div>
+<div id='tm-debug' style='position:fixed;left:8px;bottom:8px;max-width:60vw;max-height:30vh;overflow:auto;font:12px/1.4 monospace;background:#0b0b0be6;border:1px solid #333;border-radius:8px;color:#9f9;padding:8px;display:block;z-index:99999'>TM debug ready…</div></body>
+
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskmaster • Output</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    body { margin: 0; background: black; color: white; }
+    .center { display: grid; place-items: center; height: 100vh; padding: 12px; }
+    .hint { position: fixed; bottom: 12px; right: 12px; opacity: 0.5; }
+    video, img { max-width: 100vw; max-height: 100vh; }
+    
+    webview { 
+      width: 100vw; 
+      height: 100vh; 
+      border: 0; 
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .center { padding: 0; }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div id="stage"></div>
+  </div>
+  <div class="hint">Output Window</div>
+  <script>
+    const stage = document.getElementById('stage');
+    function clearStage(){
+      stage.innerHTML = '';
+    }
+    function showVideo(src, autoplay=true, loop=false, poster=null){
+      clearStage();
+      const v = document.createElement('video');
+      v.src = src;
+      v.controls = true;
+      v.autoplay = !!autoplay;
+      v.loop = !!loop;
+      v.playsInline = true;
+      v.className = 'media';
+      if (poster) v.poster = poster;
+      v.addEventListener('canplay', ()=> v.play().catch(()=>{}));
+      stage.appendChild(v);
+    }
+    function showImage(src){
+      clearStage();
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'media';
+      stage.appendChild(img);
+    }
+    
+    // --- THIS IS THE FIX ---
+    // This function is now more robust to handle tricky embeds
+    function showWebview(src){
+      clearStage();
+      const wv = document.createElement('webview');
+      wv.setAttribute('src', src);
+      wv.setAttribute('allowpopups', 'true');
+      // Set a common user agent to bypass some embed-blocking
+      wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36');
+      // Allow media to play
+      wv.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+      stage.appendChild(wv);
+    }
+
+    window.taskmasterAPI.onOutputShow((payload)=>{
+      if (!payload || !payload.type) return;
+      
+      console.log('Output received payload:', payload);
+
+      if (payload.type === 'video') {
+        showVideo(payload.src, payload.autoPlay, payload.loop, payload.poster || null);
+      } else if (payload.type === 'image') {
+        showImage(payload.src);
+      } else if (payload.type === 'iframe') {
+        showWebview(payload.src); // Call our new, robust function
+      }
+    });
+    // (I also removed the stray, broken line of code from my last message)
+    </script>
+</body>
+</html>
