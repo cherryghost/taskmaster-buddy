@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskmaster • Scoreboard</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    html, body { height: 100%; margin: 0; background: #000; }
+    .wrap { height: 100%; display: grid; grid-template-rows: 48px 1fr; }
+    header { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid #333; color:#ddd; background:#111; }
+    iframe { width: 100%; height: 100%; border: 0; background: #000; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>Embedded Scoreboard (web version)</div>
+      <div style="opacity:0.6">— This is the same vendor bundle you attached.</div>
+    </header>
+    <iframe src="./_vendor/tm-scoreboard-master/index.html"></iframe>
+  </div>
+</body>
+</html>
