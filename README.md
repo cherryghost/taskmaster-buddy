@@ -10,3 +10,6 @@ npm install
 npm start
 
 That's it, for now.
+
+npm run package
+To package up the project into an executable
