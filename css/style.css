@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+:root {
+  --bg: #111;
+  --fg: #ddd;
+  --accent: #ff4757;
+  --muted: #2a2a2a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: 56px auto 1fr;
+  height: 100vh;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muted);
+}
+
+header .title { font-weight: 700; }
+header .spacer { flex: 1; }
+
+header button, nav button, .controls button {
+  background: transparent;
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+header button:hover, nav button:hover, .controls button:hover {
+  border-color: var(--accent);
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muted);
+}
+
+nav button.active {
+  border-color: var(--accent);
+}
+
+#content {
+  padding: 12px;
+  overflow: auto;
+}
+
+.task, .panel {
+  background: #151515;
+  border: 1px solid var(--muted);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.task-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.row { display: flex; gap: 10px; align-items: center; }
+input[type="text"] { background: #0d0d0d; border: 1px solid var(--muted); color: var(--fg); padding: 6px 8px; border-radius: 8px; }
+
+/* --- THIS IS NEW: Makes the rename input blend in --- */
+input.rename-input {
+  width: 100%;
+  font-weight: 700;
+  font-size: 1em;
+  padding: 0;
+  margin: 0;
+}
+
+textarea:not(#notes) { 
+  width: 100%; 
+  min-height: 160px; 
+  background: #0d0d0d; 
+  border: 1px solid var(--muted); 
+  color: var(--fg); 
+  padding: 8px; 
+  border-radius: 8px; 
+}
+
+/* --- THIS IS NEW: Styles for the "Sticky Note" --- */
+#notes {
+  font-family: 'Special Elite', monospace;
+  background: #ffc; /* Sticky note yellow */
+  color: #333;
+  border: 1px solid #e6db55;
+  box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+  font-size: 1.2rem;
+  line-height: 1.6;
+  padding: 20px;
+  width: 100%;
+  height: calc(100vh - 180px); /* Fill the available space */
+  border-radius: 8px;
+}
+
+
+table { width: 100%; border-collapse: collapse; }
+td, th { border-bottom: 1px solid var(--muted); padding: 8px; text-align: left; }
+.score-btns button { width: 32px; }
+.media {
+  width: 100%;
+  max-height: 60vh;
+  background: black;
+  display: block;
+  border-radius: 10px;
+}
+
+
+/* --- Playlist grid + cards --- */
+.accordion { border: 1px solid var(--muted); border-radius: 10px; margin-bottom: 12px; background:#121212; }
+.accordion-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; cursor:pointer; }
+.accordion-title { font-weight:700; }
+.accordion-body { padding: 12px; border-top: 1px solid var(--muted); }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px; }
+.card { background:#1a1a1a; border:1px solid var(--muted); border-radius:12px; padding:12px; }
+.card h4 { margin:0 0 8px 0; font-weight:700; }
+.card .controls { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+.btn { background:transparent; border:1px solid var(--muted); color:var(--fg); padding:6px 10px; border-radius:10px; cursor:pointer; }
+.btn:hover { border-color: var(--accent); }
+.badge { font-size: 12px; opacity:.7; border:1px solid var(--muted); padding:2px 6px; border-radius: 999px; margin-left: 8px; }
+    
+/* Hide preview remnants */
+.preview, .preview-container, .video-preview { display:none !important; }
+
+/* Hide preview/media panes */
+.card .media, .card video, .card iframe, .card .preview, .card .player, .card .video-preview { display: none !important; }
