@@ -4,8 +4,7 @@ const DEFAULT_PROJECT = {
   taskmaster: {
     title: 'Untitled Project',
     updatedAt: new Date().toISOString(),
-    playlist: [], // [{type:'category', title:'...', expanded:true, items:[{type:'video', mode:'url'|'local', title:'', urlSrc:'', localSrc:''}]}]
-    // --- THIS IS NEW ---
+    playlist: [], 
     scoreboard: { contestants: [] }, 
     notes: '',
     settings: { defaultOutputDisplay: 1 }
@@ -17,7 +16,11 @@ let project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 const nowISO = () => new Date().toISOString();
-const fileURLFromPath = (p) => 'file:///' + p.replace(/\\/g,'/').replace(/^([A-Za-z]):\//,'$1:/');
+
+const fileURLFromPath = (p) => {
+  if (!p) return ''; 
+  return 'file:///' + p.replace(/\\/g,'/').replace(/^([A-Za-z]):\//,'$1:/');
+};
 
 function html(strings, ...vals){ return strings.reduce((a,s,i)=> a + s + (vals[i] ?? ''), ''); }
 function setActive(tab){ $$('nav button').forEach(b=>b.classList.remove('active')); $('#nav-'+tab).classList.add('active'); }
@@ -37,16 +40,18 @@ function render(){
   if (tab==='notes') renderNotes(content);
 }
 
-
 function renderPlaylist(container){
   ensureCategories();
   const cats = project.taskmaster.playlist;
 
   container.innerHTML = html`
     <div class="panel">
-      <div class="row" style="gap:8px;flex-wrap:wrap;">
-        <input id="new-cat-name" type="text" placeholder="Category name…" />
-        <button class="btn" id="btn-add-category">Add Category</button>
+      <div class="row" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px;">
+          <input id="new-cat-name" type="text" placeholder="Category name…" />
+          <button class="btn" id="btn-add-category">Add Category</button>
+        </div>
+        <button class="btn close-session" style="background:#900; color:white; font-size:1em; padding: 6px 16px;">🛑 Close Screen</button>
       </div>
     </div>
     ${cats.map((cat,cidx)=> html`
@@ -60,7 +65,10 @@ function renderPlaylist(container){
           <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:10px;">
             <input type="text" id="url-title-${cidx}" placeholder="Video title…" style="min-width:180px;" />
             <input type="text" id="url-src-${cidx}" placeholder="Embed URL (iframe src)…" style="min-width:380px; flex:1;" />
-            <button class="btn add-url" data-cidx="${cidx}">Add</button>
+            
+            <button class="btn add-url" data-cidx="${cidx}">Add URL</button>
+            <button class="btn add-local" data-cidx="${cidx}">Add Local</button>
+
             <button class="btn remove-cat" data-cidx="${cidx}">Remove Category</button>
           </div>
           <div class="grid">
@@ -72,7 +80,6 @@ function renderPlaylist(container){
     `).join('')}
   `;
 
-  // Header bindings
   const addCat = document.getElementById('btn-add-category');
   if (addCat) addCat.addEventListener('click', ()=>{
     const name = (document.getElementById('new-cat-name')?.value || '').trim() || `Category ${cats.length+1}`;
@@ -82,7 +89,6 @@ function renderPlaylist(container){
     render();
   });
 
-  // Category bindings
   $$('.accordion',container).forEach(acc=>{
     const cidx = Number(acc.getAttribute('data-cidx'));
     const cat = cats[cidx];
@@ -95,10 +101,10 @@ function renderPlaylist(container){
     if (!cat.expanded) return;
     const body = acc.querySelector('.accordion-body');
 
-    // Add URL handler
     const addBtn = body.querySelector('.add-url');
     const tInp = body.querySelector(`#url-title-${cidx}`);
     const uInp = body.querySelector(`#url-src-${cidx}`);
+    
     if (addBtn){
       addBtn.addEventListener('click', ()=>{
         const title = (tInp && tInp.value.trim()) ? tInp.value.trim() : 'Video';
@@ -111,7 +117,23 @@ function renderPlaylist(container){
       });
     }
 
-    // Remove Category handler
+    const localBtn = body.querySelector('.add-local');
+    if (localBtn) {
+      localBtn.addEventListener('click', async () => {
+        const localPath = await window.taskmasterAPI.selectLocalVideo();
+        if (!localPath) return; 
+        
+        const fileName = localPath.split(/[/\\]/).pop();
+        const title = (tInp && tInp.value.trim()) ? tInp.value.trim() : fileName;
+        
+        cat.items.push({ type:'video', mode:'local', title, urlSrc:'', localSrc: localPath });
+        
+        if (tInp) tInp.value='';
+        project.taskmaster.updatedAt = nowISO();
+        render();
+      });
+    }
+
     const rm = body.querySelector('.remove-cat');
     if (rm){
       rm.addEventListener('click', ()=>{
@@ -122,7 +144,6 @@ function renderPlaylist(container){
       });
     }
 
-    // Kick off previews
     $$('.preview', body).forEach(async img => {
       const url = img.getAttribute('data-url');
       if (!url) return;
@@ -131,19 +152,20 @@ function renderPlaylist(container){
         if (data) img.src = data;
       } catch (e) { console.error('preview fetch failed', e); }
     });
-
   });
 }
 
-
 function itemCard(it,cidx,iidx){
+  const isLocal = it.mode === 'local';
+  const badgeText = isLocal ? 'Local' : 'Online';
+  const srcUrl = isLocal ? fileURLFromPath(it.localSrc) : (it.urlSrc || '');
+
   return html`
-    <div class="card" data-cidx="${cidx}" data-iidx="${iidx}" data-url="${it.urlSrc || ''}">
-      <h4>${it.title || 'Video'} <span class="badge">Online</span></h4>
+    <div class="card" data-cidx="${cidx}" data-iidx="${iidx}" data-url="${srcUrl}" data-mode="${it.mode}">
+      <h4>${it.title || 'Video'} <span class="badge">${badgeText}</span></h4>
       <div class="controls">
-        <button class="btn rename">Rename</button>
-        <button class="btn send-output">Send To Screen</button>
-        <button class="btn close-session">Close Session</button>
+        <button class="btn edit-item">Edit</button>
+        <button class="btn send-output" style="background: #2a2;">Send To Screen</button>
         <button class="btn remove">Remove</button>
       </div>
     </div>`;
@@ -151,16 +173,17 @@ function itemCard(it,cidx,iidx){
 
 // ======= Scores / Notes =======
 function renderScores(container){
-  // --- THIS IS THE FIX ---
-  // Pointing directly to the vendor's index.html to simplify communication
   container.innerHTML = html`
-    <div class="panel" style="padding:0; height: calc(100vh - 160px);">
-      <iframe id="scoreboard-iframe" src="./scoreboard/_vendor/tm-scoreboard-master/index.html" style="width:100%;height:100%;border:0;"></iframe>
+    <div class="panel" style="padding: 10px 0 0 0; display:flex; flex-direction:column; height: calc(100vh - 160px);">
+      <div style="padding: 0 10px 10px 10px; text-align: right; border-bottom: 1px solid #333; display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn close-session" style="background: #900; color: white;">🛑 Close Screen</button>
+        <button class="btn" id="cast-scoreboard-btn" style="background: #0066cc; color: white;">📺 Send Scoreboard To Screen</button>
+      </div>
+      <iframe id="scoreboard-iframe" src="./scoreboard/_vendor/tm-scoreboard-master/index.html" style="width:100%;flex:1;border:0;"></iframe>
     </div>`;
   
   const iframe = $('#scoreboard-iframe');
   if (iframe) {
-    // 1. When the iframe loads, send it the saved data
     iframe.onload = () => {
       const contestantsData = (project.taskmaster.scoreboard && project.taskmaster.scoreboard.contestants) || [];
       iframe.contentWindow.postMessage({
@@ -168,6 +191,29 @@ function renderScores(container){
         payload: contestantsData
       }, '*');
     };
+  }
+
+  const castBtn = $('#cast-scoreboard-btn');
+  if (castBtn) {
+    castBtn.addEventListener('click', async () => {
+      const displayId = await window.taskmasterAPI.chooseDisplay();
+      if (!displayId) return;
+
+      const a = document.createElement('a');
+      a.href = "./scoreboard/_vendor/tm-scoreboard-master/index.html";
+      const absoluteUrl = a.href;
+
+      // FIX: Grab the current state and send it along with the play request!
+      const contestantsData = (project.taskmaster.scoreboard && project.taskmaster.scoreboard.contestants) || [];
+
+      await window.taskmasterAPI.playUrl({ 
+        src: absoluteUrl, 
+        displayId, 
+        delayMs: 0, 
+        type: 'iframe',
+        scoreboardData: contestantsData // <--- Data is now bundled here
+      });
+    });
   }
 }
 
@@ -196,8 +242,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     await window.taskmasterAPI.saveProject({ data: collectCurrentState() });
   });
 
-  // --- THIS IS NEW ---
-  // 2. Listen for messages *from* the iframe to save data
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'scoreboard:update') {
       if (!project.taskmaster.scoreboard) {
@@ -205,13 +249,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
       project.taskmaster.scoreboard.contestants = event.data.payload;
       project.taskmaster.updatedAt = nowISO();
-      // console.log('Scoreboard data updated in main project');
     }
   });
 
   setActive('playlist'); render();
 });
-
 
 // GLOBAL_TM_DEBUG (Card click handler)
 (function(){
@@ -225,36 +267,57 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     const card = t.closest('.card');
 
-    const renameBtn = t.closest('.rename');
-    if (renameBtn && card) {
+    const editBtn = t.closest('.edit-item');
+    if (editBtn && card) {
       try {
-        const h4 = card.querySelector('h4');
-        if (h4.querySelector('input')) return; // Already editing
-
         const cidx = Number(card.getAttribute('data-cidx'));
         const iidx = Number(card.getAttribute('data-iidx'));
         const it = project.taskmaster.playlist[cidx].items[iidx];
-        const oldTitle = it.title || '';
-
-        h4.innerHTML = `<input type="text" class="rename-input" value="${oldTitle.replace(/"/g, '&quot;')}" />`;
-        const input = h4.querySelector('input');
-        input.focus();
-        input.select();
-
-        const saveRename = () => {
-          it.title = input.value.trim();
-          project.taskmaster.updatedAt = nowISO();
-          render(); 
-        };
         
-        input.addEventListener('blur', saveRename);
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') saveRename();
-          if (e.key === 'Escape') render(); 
-        });
+        const isLocal = it.mode === 'local';
+        const safeTitle = (it.title || '').replace(/"/g, '&quot;');
+        const safeUrl = (it.urlSrc || '').replace(/"/g, '&quot;');
 
-      } catch (e) { log('rename error', e && e.message || e); render(); }
+        card.innerHTML = `
+          <div style="margin-bottom:10px;">
+            <input type="text" class="edit-title" value="${safeTitle}" placeholder="Title" style="width:100%; margin-bottom:6px; padding:4px;" />
+            ${!isLocal ? 
+              `<input type="text" class="edit-url" value="${safeUrl}" placeholder="Embed URL" style="width:100%; padding:4px;" />` 
+              : `<div style="font-size:0.85em; color:#888; word-break:break-all;">Path: ${it.localSrc}</div>`
+            }
+          </div>
+          <div class="controls">
+            <button class="btn save-edit" style="background:#060; color:white;">Save</button>
+            <button class="btn cancel-edit">Cancel</button>
+          </div>
+        `;
+      } catch (e) { log('edit error', e); render(); }
       return; 
+    }
+
+    const saveEditBtn = t.closest('.save-edit');
+    if (saveEditBtn && card) {
+      const cidx = Number(card.getAttribute('data-cidx'));
+      const iidx = Number(card.getAttribute('data-iidx'));
+      const it = project.taskmaster.playlist[cidx].items[iidx];
+      
+      const newTitle = card.querySelector('.edit-title').value;
+      it.title = newTitle.trim();
+      
+      if (it.mode === 'url') {
+        const newUrl = card.querySelector('.edit-url').value;
+        it.urlSrc = newUrl.trim();
+      }
+      
+      project.taskmaster.updatedAt = nowISO();
+      render();
+      return;
+    }
+
+    const cancelEditBtn = t.closest('.cancel-edit');
+    if (cancelEditBtn) {
+      render(); 
+      return;
     }
 
     const removeBtn = t.closest('.remove');
@@ -271,7 +334,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
 
     const sendBtn = t.closest('.send-output') || (t.tagName === 'BUTTON' && /Send To Screen/i.test((t.textContent||'')) ? t : null);
-    if (sendBtn){
+    if (sendBtn && (!sendBtn.id || !sendBtn.id.includes('cast-scoreboard-btn'))){
       try{
         log('send-output clicked');
         const displayId = await window.taskmasterAPI.chooseDisplay();
@@ -279,18 +342,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
         
         const btnCard = sendBtn.closest('.card'); 
         let url = btnCard ? (btnCard.getAttribute('data-url')||'') : '';
+        let mode = btnCard ? (btnCard.getAttribute('data-mode')||'') : 'url';
         
         if (!url) url = prompt('Enter video URL to send:','') || '';
         if (!url) return;
         
-        await window.taskmasterAPI.playUrl({ src:url, displayId, delayMs: 5000 });
+        const isDirectVideo = mode === 'local' || /\.(mp4|webm|ogg|mkv|mov)(\?.*)?$/i.test(url);
+        const mediaType = isDirectVideo ? 'video' : 'iframe';
+        const delay = 5000; 
+        
+        await window.taskmasterAPI.playUrl({ src:url, displayId, delayMs: delay, type: mediaType });
         return;
       }catch(e){ log('send-output error', e && e.message || e); }
     }
 
-    const closeBtn = t.closest('.close-session') || (t.tagName === 'BUTTON' && /Close Session/i.test((t.textContent||'')) ? t : null);
+    const closeBtn = t.closest('.close-session');
     if (closeBtn){
-      try{ await window.taskmasterAPI.closeOutput(); log('close-output from card'); }
+      try{ await window.taskmasterAPI.closeOutput(); log('close-output triggered'); }
       catch(e){ log('close-output error', e && e.message || e); }
       return;
     }

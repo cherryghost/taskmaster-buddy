@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('taskmasterAPI', {
   saveProject: (data) => ipcRenderer.invoke('save-project', data),
   loadProject: () => ipcRenderer.invoke('load-project'),
   
+  // NEW: Ask the backend to open a file selection dialog
+  selectLocalVideo: () => ipcRenderer.invoke('select-local-video'),
+  
   // Main Window Control
   toggleAppFullscreen: () => ipcRenderer.invoke('toggle-app-fullscreen'),
 

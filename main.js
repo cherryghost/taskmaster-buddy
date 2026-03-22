@@ -90,6 +90,20 @@ async function showDisplayPickerModal(parentWin){
 }
 
 // -------- IPC: Core Handlers --------
+ipcMain.handle('select-local-video', async () => {
+  try {
+    const res = await dialog.showOpenDialog(mainWin, {
+      title: 'Select a Local Video',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Videos', extensions: ['mp4', 'webm', 'ogg', 'mov', 'mkv'] }
+      ]
+    });
+    if (res.canceled || !res.filePaths.length) return null;
+    return res.filePaths[0]; 
+  } catch(e) { tmLog('select-local-video error', e && e.message || e); return null; }
+});
+
 ipcMain.handle('load-project', async (_e, filePath)=>{
   try{
     if (!filePath){
@@ -123,22 +137,33 @@ ipcMain.handle('choose-display', async ()=>{
 
 ipcMain.handle('output:playUrl', async (_event, payload) => {
   try {
-    const { src, displayId, delayMs } = payload || {};
+    // FIX: Destructure the new scoreboardData variable
+    const { src, displayId, delayMs, type, scoreboardData } = payload || {};
     if (!src) { tmLog('output:playUrl missing src'); return { ok: false, error: 'missing src' }; }
     if (!displayId) { tmLog('output:playUrl missing displayId'); return { ok: false, error: 'missing displayId' }; }
 
     const win = createOrReuseOutput(displayId);
     win.show(); win.focus(); win.setFullScreen(true);
 
-    const delay = Number(delayMs) || 5000;
-    const outputPayload = { type: 'iframe', src: src };
+    const delay = delayMs !== undefined ? Number(delayMs) : 5000;
+    
+    // Pass the scoreboard data down to output.html
+    const outputPayload = { type: type || 'iframe', src: src, scoreboardData: scoreboardData };
 
-    setTimeout(() => {
-      try {
-        win.webContents.send('output:show', outputPayload);
-        tmLog('output:playUrl sent to output window');
-      } catch (err) { tmLog('output:playUrl webContents.send error', err, err.message); }
-    }, delay);
+    const triggerSend = () => {
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.webContents.send('output:show', outputPayload);
+          tmLog(`output:playUrl sent to output window after ${delay}ms delay`);
+        }
+      }, delay);
+    };
+
+    if (win.webContents.isLoading()) {
+      win.webContents.once('did-finish-load', triggerSend);
+    } else {
+      triggerSend();
+    }
 
     return { ok: true };
   } catch (e) { tmLog('output:playUrl handler error', e, e.message); return { ok: false, error: String(e,e.message) }; }
@@ -164,21 +189,19 @@ ipcMain.handle('list-displays', () => {
   catch(e) { tmLog('list-displays error', e); return []; }
 });
 
-// This handler is required to stop the renderer from crashing on load
 ipcMain.handle('preview:url', (url) => { 
   tmLog('preview:url called', url);
-  return null; // Return null to stop the crash
+  return null; 
 });
 
 // -------- App lifecycle --------
 app.whenReady().then(()=>{
   tmLog('App is ready.');
-  createMainWindow(); // This is the only window that should load
+  createMainWindow(); 
   app.on('activate', ()=>{ if (BrowserWindow.getAllWindows().length===0) createMainWindow(); });
 });
 app.on('window-all-closed', ()=>{ if (process.platform !== 'darwin') app.quit(); });
 
-// --- Clean up old/unused handlers ---
 ipcMain.removeAllListeners('output:show');
 ipcMain.removeHandler('open-output');
 ipcMain.removeHandler('preview:open');
