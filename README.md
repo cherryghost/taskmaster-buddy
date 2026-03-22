@@ -19,5 +19,6 @@ That's it, for now.
 npm run package
 
 To package up the project into an executable  
-npm install electron-packager --save-dev
+npm install electron-packager --save-dev  
 
+Currently Windows Supported only
